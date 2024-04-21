@@ -49,7 +49,8 @@ async def send_data(message: Message, data:  Dict[str, Any], url: str) -> None:
                 token = await response.json()
                 TOKEN_DATA.update({"access_token": token["access_token"]})
             else:
-                await message.answer(text="You logged in unsuccessfully")
+                error_message = await response.json()
+                await message.answer(text=f"You logged in unsuccessfully, {error_message['detail']}")
 
 
 @dp.message(LogIn.password)
@@ -67,6 +68,10 @@ async def reset_password(message: Message, state: FSMContext):
 
 @dp.message(ResetPassword.old_password)
 async def handle_old_password(message: Message, state: FSMContext):
+    if not TOKEN_DATA:
+        await message.reply(text="Foremost you must login")
+        return
+
     await state.update_data(old_password=message.text)
     await state.set_state(ResetPassword.new_password)
     await message.answer(text="Enter your new password")
@@ -78,7 +83,8 @@ async def send_reset_data(message: Message, data: Dict[str, Any], url: str) -> N
             if response.status == 200:
                 await message.answer(text="You are successfully changed a password")
             else:
-                await message.answer(text="You are successfully changed a password")
+                message = await response.json()
+                await message.answer(text=f"You are unsuccessfully changed a password, {message['detail']}")
 
 
 @dp.message(ResetPassword.new_password)

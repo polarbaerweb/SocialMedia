@@ -122,7 +122,7 @@ async def login_user(user: schemas.UserLogIn, db: Session = Depends(get_db)) -> 
         data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
     )
 
-    return schemas.Token(access_token=access_token, token_type="bearer")
+    return schemas.Token(access_token=access_token, token_type="jwt")
 
 
 @app.get("/all_users", response_model=List[schemas.User])
@@ -130,11 +130,11 @@ async def get_all_users(x_token: str = Depends(get_access_token_from_header), db
     get_payload = await verify_token(x_token)
     user_db = crud_user.UserCRUDOperations(db=db)
 
-    if get_payload["role"] == "admin":
-        return user_db.get_all_users()
-    else:
+    if not get_payload["role"] == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="only for admins are allowed")
+
+    return user_db.get_all_users()
 
 
 @app.post("/create_post", response_model=schemas.Post)
@@ -277,5 +277,9 @@ async def reset_password(password: schemas.UserUpdatePassword, x_token: str = De
     get_payload = await verify_token(x_token)
     user_db = crud_user.UserCRUDOperations(db=db)
     user_hashed = user_db.update_password(password, get_payload["sub"])
+
+    if not user_hashed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="password is wrong")
 
     return {"message": "successfully resettled password"}

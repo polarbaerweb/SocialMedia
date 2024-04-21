@@ -58,9 +58,6 @@ class UserCRUDOperations:
     def update_password(self, password_data: schemas.UserUpdatePassword, user_id: UUID) -> models.User | bool:
         db_user: models.User = self.get_user_by_id(user_id)
 
-        if not db_user:
-            return False
-
         if not verify_password(password_data.old_password, db_user.password):
             return False
 
